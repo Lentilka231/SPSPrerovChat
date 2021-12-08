@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat</title>
+    <link rel="stylesheet"type=text/css href="{{ url_for('static',filename='styles.css') }}">
+    <script src="{{url_for('static',filename='/socket.io-client-4.4.0/dist/socket.io.js')}}"></script>
+</head>
+<body>
+    
+    <div id="mainDiv">
+        <div id="border">
+            <div id="logocircle"></div>
+            <div id="decorator">
+                <a href="https://sps-prerov.cz/"><img src="{{url_for('static',filename='spslogo.jpg')}}" id="img"></a>
+                <div id="chat">
+                    <div id="messages">
+                    </div>
+                    <div id="cara"></div>
+                    <textarea  id="placeToWrite" maxlength="200"></textarea>
+                    <svg id="send" xmlns="http://www.w3.org/2000/svg" class="ionicon" viewBox="0 0 512 512"><path d="M470.3 271.15L43.16 447.31a7.83 7.83 0 01-11.16-7V327a8 8 0 016.51-7.86l247.62-47c17.36-3.29 17.36-28.15 0-31.44l-247.63-47a8 8 0 01-6.5-7.85V72.59c0-5.74 5.88-10.26 11.16-8L470.3 241.76a16 16 0 010 29.39z" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="32"/></svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="clickDisabler">
+        <div id="jmenovka">
+            Zadej jméno:
+            <input type="text" id="jmeno" autofocus spellcheck="false">
+            <div id="submit">
+                Potvrdit
+            </div>
+        </div>
+    </div>
+    <script>
+        let socket = io.connect("http://192.168.15.126:5000"); // <================ zde je potřeba upravit URL adresu
+        
+        let jmeno;
+        let time = new Date();
+        const Mess=document.getElementById("messages"); 
+        const Name = document.getElementById("jmeno");
+        let element = document.getElementById("messages");
+        document.getElementById("send").onclick=sendMsg;
+
+        socket.on("message",function(x){
+            Mess.innerHTML+="<div class='wholemsg'><div class='msg'><b class='name'>"+x["name"]+"</b> <div class='body'>"+x["msg"]+"</div></div><div class='time'>"+x["time"]+"</div></div>";
+            element.scrollTop=element.scrollHeight;
+        });
+        socket.on("pmsg",function (x){
+            Mess.innerHTML+="<div class='wholemsg'><div class='msg'style='background-color:rgb(124, 199, 38)'><b class='name'>"+x["name"]+"</b> <div class='body'>"+x["msg"]+"</div></div><div class='time'>"+x["time"]+"</div></div>";
+            element.scrollTop=element.scrollHeight;
+        });
+        function jmenovani(){
+            if(Name.value!="" ){
+                if(Name.value.includes("/")){
+                    alert("Nesmí obsahovat znak /");
+                }
+                else if (Name.value.length>20){
+                    alert("Jméno nemůže mít víc jak 20 znaků");
+                }
+                else if (/\s/g.test(Name.value)){
+                    alert("Zadej jméno bez mezer");
+                }
+                else if (!Name.value.match(/^[A-Za-z0-9|ž|š|č|ř|ď|ť|ň|á|é|í|ý|ě|ó|ů|ú|Ž|Š|Č|Ř|Ď|Ť|Ň|Á|É|Í|Ý|Ě|Ó|Ů|Ú|Ü|Ä|Ö|Ë|ä|ë|ü|ö]+$/)){
+                    alert("Povolené jsou jenom písmena a číslice");
+                }
+                else{
+                    document.getElementById("clickDisabler").style.display="none";
+                    jmeno=Name.value;  
+                    t=time.getHours()+":"+time.getMinutes();
+                    socket.send({name:jmeno,time:t,msg:"has joined",address:""});
+                    socket.emit("privatemsg",jmeno);
+                };
+            }
+            else{
+                y=Math.round(Math.random()*2);
+                switch(y){
+                    case 0:
+                        alert("Chceš snad jméno ponozka123?");
+                        break;
+                    case 1:
+                        alert("как тебя зовут?");
+                        break;
+                    case 2:
+                        alert("Pane inženýre potřebuju jméno.");
+                        break;
+                }
+            };
+        }
+        function sendMsg(){
+            x = document.getElementById("placeToWrite")
+            if (x.value){
+                t=time.getHours()+":"+time.getMinutes();
+                if (x.value.substr(0,4)=="/msg"){
+                    if (!(typeof x.value.split(" ",3)[2]==="undefined")){
+                        socket.send({name:jmeno,time:t,msg:x.value.split(" ",3)[2],address:x.value.split(" ",3)[1]})
+                    }
+                }
+                else{
+                    socket.send({name:jmeno,time:t,msg:x.value,address:""});
+                }
+                x.value="";
+            };
+            document.getElementById("placeToWrite").focus();
+        }
+        document.addEventListener("keydown",function(e){
+            if(e.key==="Enter"){
+                if (typeof jmeno==="undefined"){
+                    jmenovani();
+                }
+                else{
+                    sendMsg();
+                };
+            };
+        });
+        document.getElementById("submit").onclick=function(){
+            jmenovani();
+        };
+        function neco (e){
+            if (e.keyCode == 13 && !e.shiftKey){
+                e.preventDefault();
+            };
+        }
+        window.onkeydown=neco;
+    </script>
+</body>
+</html>
